@@ -16,7 +16,7 @@ variable "subnet_id" {
 variable "ami_id" {
   description = "EC2 인스턴스의 AMI ID"
   type        = string
-  default     = "ami-0c9c942bd7bf113a2"  # Amazon Linux 2 AMI in ap-northeast-2
+  default     = "ami-0a463f27534bdf246"  # Amazon Linux 2023 AMI
 }
 
 variable "instance_type" {
