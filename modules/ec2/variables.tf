@@ -35,4 +35,16 @@ variable "associate_public_ip" {
   description = "퍼블릭 IP 할당 여부"
   type        = bool
   default     = false
+}
+
+variable "key_name" {
+  description = "EC2 인스턴스에 사용할 키 페어 이름"
+  type        = string
+  default     = null  # 기본값은 null로 설정하여 새 키 페어 생성
+}
+
+variable "create_key_pair" {
+  description = "새 키 페어를 생성할지 여부"
+  type        = bool
+  default     = true
 } 
