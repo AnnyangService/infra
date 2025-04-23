@@ -22,6 +22,29 @@ resource "aws_key_pair" "key_pair" {
   public_key = tls_private_key.ssh[0].public_key_openssh
 }
 
+# CodeDeploy 에이전트 설치를 위한 사용자 데이터 스크립트
+locals {
+  user_data = <<-EOF
+#!/bin/bash
+# Amazon Linux 2023용 CodeDeploy 에이전트 설치
+sudo dnf update -y
+sudo dnf install -y ruby wget
+cd /home/ec2-user
+
+# 리전에 따른 CodeDeploy 에이전트 다운로드 URL 설정
+region=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+wget https://aws-codedeploy-$region.s3.$region.amazonaws.com/latest/install
+chmod +x ./install
+sudo ./install auto
+sudo systemctl enable codedeploy-agent
+sudo systemctl start codedeploy-agent
+
+# 애플리케이션 디렉토리 생성 및 권한 설정
+sudo mkdir -p /var/www/app
+sudo chown -R ec2-user:ec2-user /var/www/app
+EOF
+}
+
 resource "aws_instance" "main" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
@@ -31,10 +54,18 @@ resource "aws_instance" "main" {
   # 키 페어 연결
   key_name               = var.create_key_pair ? aws_key_pair.key_pair[0].key_name : var.key_name
   
+  # IAM 인스턴스 프로파일 연결
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  
+  # 사용자 데이터 스크립트 추가
+  user_data              = local.user_data
+  
   # 공개 IP 할당
   associate_public_ip_address = var.associate_public_ip
 
   tags = {
     Name = "${var.project_name}-ec2"
+    Application = var.project_name
+    ManagedBy = "terraform"
   }
 } 

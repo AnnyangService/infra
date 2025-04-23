@@ -66,6 +66,44 @@ resource "aws_ssm_parameter" "ssh_private_key" {
   depends_on = [module.ec2]
 }
 
+# S3 배포 버킷 파라미터 저장
+resource "aws_ssm_parameter" "deployment_bucket" {
+  name  = "/${local.project_name}/deploy/api-server/bucket"
+  type  = "String"
+  value = aws_s3_bucket.app_deploy.bucket
+  
+  tags = {
+    Name = "${local.project_name}-api-server-deployment-bucket"
+  }
+  
+  depends_on = [aws_s3_bucket.app_deploy]
+}
+
+# CodeDeploy 관련 SSM 파라미터 저장
+resource "aws_ssm_parameter" "codedeploy_app" {
+  name  = "/${local.project_name}/deploy/api-server/app_name"
+  type  = "String"
+  value = aws_codedeploy_app.app.name
+  
+  tags = {
+    Name = "${local.project_name}-codedeploy-api-server-app"
+  }
+  
+  depends_on = [aws_codedeploy_app.app]
+}
+
+resource "aws_ssm_parameter" "codedeploy_group" {
+  name  = "/${local.project_name}/deploy/api-server/group_name"
+  type  = "String"
+  value = aws_codedeploy_deployment_group.app_deploy_group.deployment_group_name
+  
+  tags = {
+    Name = "${local.project_name}-codedeploy-api-server-group"
+  }
+  
+  depends_on = [aws_codedeploy_deployment_group.app_deploy_group]
+}
+
 # SSM 파라미터 출력값
 output "ssm_parameters" {
   description = "배포에 필요한 SSM 파라미터 경로"
@@ -75,5 +113,8 @@ output "ssm_parameters" {
     db_password = aws_ssm_parameter.db_password.name
     ssh_user    = aws_ssm_parameter.ssh_user.name
     ssh_private_key = module.ec2.private_key_path != "기존 키 사용 중" ? aws_ssm_parameter.ssh_private_key[0].name : "키 파라미터가 생성되지 않았습니다"
+    codedeploy_app = aws_ssm_parameter.codedeploy_app.name
+    codedeploy_group = aws_ssm_parameter.codedeploy_group.name
+    deployment_bucket = aws_ssm_parameter.deployment_bucket.name
   }
 }
