@@ -56,7 +56,7 @@ resource "aws_ssm_parameter" "ssh_private_key" {
   
   name  = "/${local.project_name}/ssh/private_key"
   type  = "SecureString"
-  value = file(module.ec2.private_key_path)
+  value = try(file(module.ec2.private_key_path), "파일을 읽을 수 없습니다")
   
   tags = {
     Name = "${local.project_name}-ssh-private-key"
