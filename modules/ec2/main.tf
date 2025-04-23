@@ -22,6 +22,37 @@ resource "aws_key_pair" "key_pair" {
   public_key = tls_private_key.ssh[0].public_key_openssh
 }
 
+# CodeDeploy 에이전트 설치를 위한 사용자 데이터 스크립트
+locals {
+  user_data = <<-EOF
+#!/bin/bash
+# 시스템 업데이트 및 기본 도구 설치
+sudo dnf update -y
+sudo dnf install -y ruby wget
+
+# Java 설치
+sudo dnf install -y java-17-amazon-corretto
+sudo dnf install -y java-17-amazon-corretto-devel
+
+# 환경 변수 설정
+echo "export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto" | sudo tee -a /etc/profile.d/java.sh
+echo "export PATH=$PATH:$JAVA_HOME/bin" | sudo tee -a /etc/profile.d/java.sh
+sudo chmod +x /etc/profile.d/java.sh
+source /etc/profile.d/java.sh
+
+cd /home/ec2-user
+
+# 리전에 따른 CodeDeploy 에이전트 다운로드 URL 설정 (IMDSv2 호환)
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+region=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
+wget https://aws-codedeploy-$region.s3.$region.amazonaws.com/latest/install
+chmod +x ./install
+sudo ./install auto
+sudo systemctl enable codedeploy-agent
+sudo systemctl start codedeploy-agent
+EOF
+}
+
 resource "aws_instance" "main" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
@@ -31,10 +62,18 @@ resource "aws_instance" "main" {
   # 키 페어 연결
   key_name               = var.create_key_pair ? aws_key_pair.key_pair[0].key_name : var.key_name
   
+  # IAM 인스턴스 프로파일 연결
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  
+  # 사용자 데이터 스크립트 추가
+  user_data              = local.user_data
+  
   # 공개 IP 할당
   associate_public_ip_address = var.associate_public_ip
 
   tags = {
-    Name = "${var.project_name}-ec2"
+    Name = "${var.project_name}-api-server-ec2"
+    Application = var.project_name
+    ManagedBy = "terraform"
   }
 } 

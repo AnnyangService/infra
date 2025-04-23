@@ -1,89 +1,121 @@
-# AWS Terraform 인프라 코드
+# AWS 인프라 및 CodeDeploy 배포 설정
 
-이 저장소는 AWS 인프라를 Terraform으로 관리하는 예제 코드를 포함하고 있습니다.
+## 개요
+이 프로젝트는 Terraform을 사용하여 AWS 인프라(VPC, EC2, RDS)를 생성하고 CodeDeploy를 통한 애플리케이션 배포 환경을 구성합니다.
 
-## 구조
+## 인프라 구성요소
+- **VPC**: 퍼블릭/프라이빗 서브넷, 인터넷 게이트웨이, 라우팅 테이블
+- **EC2**: 애플리케이션 서버 (CodeDeploy 에이전트 자동 설치)
+- **RDS**: MariaDB 데이터베이스
+- **보안 그룹**: EC2 및 RDS 접근 제어
+- **CodeDeploy**: 애플리케이션 배포 자동화
+- **S3**: 배포 패키지 저장소
 
-- `modules/`: 재사용 가능한 Terraform 모듈
-  - `vpc/`: VPC, 서브넷, 인터넷 게이트웨이 등 네트워크 리소스
-  - `ec2/`: EC2 인스턴스 및 보안 그룹
-- `environments/`: 환경별 설정
-  - `dev/`: 개발 환경 설정
+## Terraform 실행 방법
 
-## 사용 방법
+1. 초기화
+```bash
+terraform init
+```
 
-### 사전 준비
+2. 계획 확인
+```bash
+terraform plan
+```
 
-1. [Terraform](https://www.terraform.io/downloads.html)을 설치합니다.
-2. AWS 계정 및 적절한 권한을 가진 IAM 사용자가 필요합니다.
-3. AWS CLI를 설치하고 구성합니다:
-   ```bash
-   aws configure
-   ```
+3. 인프라 생성
+```bash
+terraform apply
+```
 
-### 배포 방법
+4. 인프라 삭제
+```bash
+terraform destroy
+```
 
-1. 환경 디렉토리로 이동합니다:
-   ```bash
-   cd environments/dev
-   ```
+## CI/CD 배포 통합 방법
 
-2. Terraform 초기화:
-   ```bash
-   terraform init
-   ```
+### 애플리케이션 프로젝트 준비
 
-3. 배포 계획 확인:
-   ```bash
-   terraform plan
-   ```
+1. `appspec.yml`을 프로젝트 루트에 배치
+   - CodeDeploy가 배포 단계를 관리하는 데 필요한 파일입니다.
 
-4. 인프라 배포:
-   ```bash
-   terraform apply
-   ```
+2. 배포 스크립트 준비
+   - `scripts/before_install.sh`: 배포 전 준비
+   - `scripts/after_install.sh`: 배포 후 설정 (SSM에서 환경 변수 불러오기)
+   - `scripts/application_start.sh`: 애플리케이션 시작
+   - `scripts/application_stop.sh`: 애플리케이션 중지
 
-5. 인프라 삭제:
-   ```bash
-   terraform destroy
-   ```
+### CI/CD 파이프라인 설정 (GitHub Actions, Jenkins, GitLab CI 등)
 
-## 보안 고려 사항
+CI/CD 파이프라인에 다음 단계를 추가합니다:
 
-이 코드를 실제 환경에서 사용하기 전에 다음 사항을 고려하세요:
+1. 빌드 단계
+```yaml
+# 예: GitHub Actions 워크플로우
+build:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v3
+    # 빌드 단계...
+    
+    # 배포 패키지 생성
+    - name: Create deployment package
+      run: |
+        zip -r application.zip appspec.yml scripts/ dist/ # 또는 빌드된 파일이 있는 디렉토리
+```
 
-1. **SSH 접근 제한**: 기본 설정은 SSH 접근을 제한하지 않습니다. 반드시 `allowed_ssh_cidr_blocks` 변수를 안전한 IP 범위로 설정하세요.
+2. S3 업로드 단계
+```yaml
+upload-to-s3:
+  runs-on: ubuntu-latest
+  needs: build
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-2
+        
+    - name: Upload to S3
+      run: |
+        aws s3 cp application.zip s3://${BUCKET_NAME}/releases/application-${{ github.sha }}.zip
+      env:
+        BUCKET_NAME: $(aws ssm get-parameters --names "/annyang/deploy/bucket" --query "Parameters[0].Value" --output text)
+```
 
-2. **상태 파일 관리**: 프로덕션 환경에서는 상태 파일을 S3와 같은 안전한 백엔드에 저장하세요.
+3. CodeDeploy 배포 시작
+```yaml
+deploy:
+  runs-on: ubuntu-latest
+  needs: upload-to-s3
+  steps:
+    - name: Deploy with CodeDeploy
+      run: |
+        APP_NAME=$(aws ssm get-parameters --names "/annyang/deploy/app_name" --query "Parameters[0].Value" --output text)
+        DEPLOY_GROUP=$(aws ssm get-parameters --names "/annyang/deploy/group_name" --query "Parameters[0].Value" --output text)
+        BUCKET_NAME=$(aws ssm get-parameters --names "/annyang/deploy/bucket" --query "Parameters[0].Value" --output text)
+        
+        aws deploy create-deployment \
+          --application-name $APP_NAME \
+          --deployment-group-name $DEPLOY_GROUP \
+          --s3-location bucket=$BUCKET_NAME,key=releases/application-${{ github.sha }}.zip,bundleType=zip \
+          --region ap-northeast-2
+```
 
-3. **인프라 분리**: 다양한 환경(개발, 테스트, 프로덕션)을 명확하게 분리하세요.
+## SSM 파라미터 스토어 사용
 
-4. **비밀 관리**: AWS Secrets Manager 또는 HashiCorp Vault를 사용하여 비밀을 관리하세요.
+배포된 EC2 인스턴스는 배포 스크립트에서 다음 SSM 파라미터들을 사용합니다:
 
-## 커스터마이징
+- `/${PROJECT_NAME}/db/url`: 데이터베이스 JDBC URL
+- `/${PROJECT_NAME}/db/username`: 데이터베이스 사용자 이름
+- `/${PROJECT_NAME}/db/password`: 데이터베이스 비밀번호 (암호화됨)
+- `/${PROJECT_NAME}/deploy/api-server/app_name`: CodeDeploy 애플리케이션 이름
+- `/${PROJECT_NAME}/deploy/api-server/group_name`: CodeDeploy 배포 그룹 이름
+- `/${PROJECT_NAME}/deploy/api-server/bucket`: 배포 S3 버킷 이름
 
-`environments/dev/main.tf` 파일을 수정하여 다음과 같은 설정을 변경할 수 있습니다:
-
-1. **SSH 접근 제한**: 예시 코드를 참고하여 현재 IP만 접근할 수 있도록 설정:
-   ```hcl
-   allowed_ssh_cidr_blocks = [local.my_ip]  # 현재 IP 주소만 허용
-   ```
-
-2. **리전 변경**: 필요에 따라 AWS 리전을 변경:
-   ```hcl
-   provider "aws" {
-     region = "원하는_리전"
-   }
-   ```
-
-3. **인스턴스 타입 변경**: 필요에 따라 EC2 인스턴스 타입 변경:
-   ```hcl
-   module "ec2" {
-     # ...
-     instance_type = "원하는_인스턴스_타입"
-   }
-   ```
-
-## 라이센스
-
-MIT 라이센스 
+## 참고사항
+- RDS 비밀번호는 AWS SSM Parameter Store에 저장되며, 초기 비밀번호는 배포 후 변경해야 합니다.
+- EC2 SSH 키는 `generated/` 디렉토리에 저장됩니다.
+- 애플리케이션이 SSM에서 환경 변수를 가져오기 위해서는 EC2 인스턴스에 적절한 IAM 권한이 필요합니다 (이미 구성됨). 
