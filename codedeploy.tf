@@ -39,7 +39,7 @@ resource "aws_codedeploy_deployment_group" "app_deploy_group" {
     ec2_tag_filter {
       key   = "Name"
       type  = "KEY_AND_VALUE"
-      value = "${local.project_name}-ec2"
+      value = "${local.project_name}-api-server-ec2"
     }
   }
 
