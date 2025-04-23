@@ -23,34 +23,14 @@ provider "aws" {
   region = "ap-northeast-2"
 }
 
-# 현재 IP 주소 가져오기 (사용자가 직접 구성해야 함)
+# 현재 IP 주소 가져오기
 data "http" "myip" {
   url = "https://api.ipify.org"
 }
 
 locals {
   my_ip = "${data.http.myip.response_body}/32"
-  project_name = "annyang"  # 프로젝트 이름 변경
-}
-
-# SSM Parameter Store에서 RDS 비밀번호 가져오기
-# 이 파라미터는 이미 생성되어 있어야 함 - AWS 콘솔에서 생성 가능
-data "aws_ssm_parameter" "db_password" {
-  name = "/db/password"  # 경로 변경
-  # 파라미터가 없는 경우 자동으로 생성
-  depends_on = [aws_ssm_parameter.db_password]
-}
-
-# SSM Parameter Store에 RDS 비밀번호 생성 (없는 경우)
-resource "aws_ssm_parameter" "db_password" {
-  name  = "/db/password"  # 경로 변경
-  type  = "SecureString"
-  value = "Password123!"  # 초기값 설정 - 나중에 AWS 콘솔에서 변경 가능
-  
-  # 존재하는 경우 덮어쓰지 않도록 설정
-  lifecycle {
-    ignore_changes = [value]
-  }
+  project_name = "annyang"
 }
 
 module "vpc" {
@@ -85,7 +65,7 @@ module "rds" {
   instance_class    = "db.t3.micro"
   db_name           = "hi_meow"
   username          = "admin"
-  password          = data.aws_ssm_parameter.db_password.value
+  password          = aws_ssm_parameter.db_password.value
   parameter_group_name = "default.mariadb10.6"
   multi_az          = false
 }
