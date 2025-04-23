@@ -64,7 +64,7 @@ resource "aws_instance" "main" {
   associate_public_ip_address = var.associate_public_ip
 
   tags = {
-    Name = "${var.project_name}-ec2"
+    Name = "${var.project_name}-api-server-ec2"
     Application = var.project_name
     ManagedBy = "terraform"
   }

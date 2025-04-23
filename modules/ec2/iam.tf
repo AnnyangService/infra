@@ -1,6 +1,6 @@
 # EC2 인스턴스에 필요한 IAM 역할 정의
 resource "aws_iam_role" "ec2_role" {
-  name = "${var.project_name}-ec2-role"
+  name = "${var.project_name}-api-server-ec2-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -36,7 +36,7 @@ resource "aws_iam_role_policy_attachment" "ec2_ssm_policy" {
 
 # IAM 인스턴스 프로파일 생성
 resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "${var.project_name}-ec2-profile"
+  name = "${var.project_name}-api-server-ec2-profile"
   role = aws_iam_role.ec2_role.name
 }
 
