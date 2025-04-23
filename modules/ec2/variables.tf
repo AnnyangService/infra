@@ -3,11 +3,6 @@ variable "project_name" {
   type        = string
 }
 
-variable "vpc_id" {
-  description = "VPC ID"
-  type        = string
-}
-
 variable "subnet_id" {
   description = "서브넷 ID"
   type        = string
@@ -23,12 +18,6 @@ variable "instance_type" {
   description = "EC2 인스턴스 타입"
   type        = string
   default     = "t2.micro"
-}
-
-variable "allowed_ssh_cidr_blocks" {
-  description = "SSH 접근을 허용할 CIDR 블록 목록"
-  type        = list(string)
-  default     = []  # 기본값은 빈 리스트로 설정
 }
 
 variable "associate_public_ip" {
@@ -47,4 +36,9 @@ variable "create_key_pair" {
   description = "새 키 페어를 생성할지 여부"
   type        = bool
   default     = true
-} 
+}
+
+variable "security_group_id" {
+  description = "EC2 인스턴스에 적용할 보안 그룹 ID"
+  type        = string
+}

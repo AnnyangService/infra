@@ -1,27 +1,3 @@
-resource "aws_security_group" "ec2" {
-  name        = "${var.project_name}-ec2-sg"
-  description = "Security group for EC2 instances"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_ssh_cidr_blocks
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.project_name}-ec2-sg"
-  }
-}
-
 # SSH 키 페어 생성
 resource "tls_private_key" "ssh" {
   count     = var.create_key_pair ? 1 : 0
@@ -50,7 +26,7 @@ resource "aws_instance" "main" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
   subnet_id              = var.subnet_id
-  vpc_security_group_ids = [aws_security_group.ec2.id]
+  vpc_security_group_ids = [var.security_group_id]
   
   # 키 페어 연결
   key_name               = var.create_key_pair ? aws_key_pair.key_pair[0].key_name : var.key_name
