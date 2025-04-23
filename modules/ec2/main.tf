@@ -26,9 +26,20 @@ resource "aws_key_pair" "key_pair" {
 locals {
   user_data = <<-EOF
 #!/bin/bash
-# Amazon Linux 2023용 CodeDeploy 에이전트 설치
+# 시스템 업데이트 및 기본 도구 설치
 sudo dnf update -y
 sudo dnf install -y ruby wget
+
+# Java 설치
+sudo dnf install -y java-17-amazon-corretto
+sudo dnf install -y java-17-amazon-corretto-devel
+
+# 환경 변수 설정
+echo "export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto" | sudo tee -a /etc/profile.d/java.sh
+echo "export PATH=$PATH:$JAVA_HOME/bin" | sudo tee -a /etc/profile.d/java.sh
+sudo chmod +x /etc/profile.d/java.sh
+source /etc/profile.d/java.sh
+
 cd /home/ec2-user
 
 # 리전에 따른 CodeDeploy 에이전트 다운로드 URL 설정 (IMDSv2 호환)
@@ -39,10 +50,6 @@ chmod +x ./install
 sudo ./install auto
 sudo systemctl enable codedeploy-agent
 sudo systemctl start codedeploy-agent
-
-# 애플리케이션 디렉토리 생성 및 권한 설정
-sudo mkdir -p /var/www/app
-sudo chown -R ec2-user:ec2-user /var/www/app
 EOF
 }
 
