@@ -31,8 +31,9 @@ sudo dnf update -y
 sudo dnf install -y ruby wget
 cd /home/ec2-user
 
-# 리전에 따른 CodeDeploy 에이전트 다운로드 URL 설정
-region=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+# 리전에 따른 CodeDeploy 에이전트 다운로드 URL 설정 (IMDSv2 호환)
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+region=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
 wget https://aws-codedeploy-$region.s3.$region.amazonaws.com/latest/install
 chmod +x ./install
 sudo ./install auto
