@@ -1,15 +1,22 @@
 # SSH 키 페어 생성
+locals {
+  # 키 파일이 이미 존재하는지 확인하고 create_key_pair 값을 결정
+  key_name = "${var.project_name}-key"
+  key_file_path = "${path.cwd}/generated/${local.key_name}.pem"
+  should_create_key = !fileexists(local.key_file_path)
+}
+
 resource "tls_private_key" "ssh" {
-  count     = var.create_key_pair ? 1 : 0
+  count     = local.should_create_key ? 1 : 0
   algorithm = "RSA"
   rsa_bits  = 4096
 }
 
 # 로컬에 PEM 파일 저장
 resource "local_file" "private_key" {
-  count    = var.create_key_pair ? 1 : 0
+  count    = local.should_create_key ? 1 : 0
   content  = tls_private_key.ssh[0].private_key_pem
-  filename = "${path.cwd}/generated/${var.project_name}-key.pem"
+  filename = local.key_file_path
 
   # 파일 권한 설정 (0600: 소유자만 읽기/쓰기 가능)
   file_permission = "0600"
@@ -17,8 +24,8 @@ resource "local_file" "private_key" {
 
 # AWS 키 페어 생성
 resource "aws_key_pair" "key_pair" {
-  count      = var.create_key_pair ? 1 : 0
-  key_name   = "${var.project_name}-key"
+  count      = local.should_create_key ? 1 : 0
+  key_name   = local.key_name
   public_key = tls_private_key.ssh[0].public_key_openssh
 }
 
@@ -60,7 +67,7 @@ resource "aws_instance" "main" {
   vpc_security_group_ids = [var.security_group_id]
   
   # 키 페어 연결
-  key_name               = var.create_key_pair ? aws_key_pair.key_pair[0].key_name : var.key_name
+  key_name               = local.key_name
   
   # IAM 인스턴스 프로파일 연결
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name

@@ -50,22 +50,6 @@ resource "aws_ssm_parameter" "ssh_user" {
   }
 }
 
-# SSH_PRIVATE_KEY 파라미터 저장 - EC2 모듈에 의존
-resource "aws_ssm_parameter" "ssh_private_key" {
-  count = module.ec2.private_key_path != "기존 키 사용 중" ? 1 : 0
-  
-  name  = "/${local.project_name}/ssh/private_key"
-  type  = "SecureString"
-  value = try(file(module.ec2.private_key_path), "파일을 읽을 수 없습니다")
-  
-  tags = {
-    Name = "${local.project_name}-ssh-private-key"
-  }
-  
-  # EC2 모듈이 완료된 후에만 생성
-  depends_on = [module.ec2]
-}
-
 # S3 배포 버킷 파라미터 저장
 resource "aws_ssm_parameter" "deployment_bucket" {
   name  = "/${local.project_name}/deploy/api-server/bucket"
@@ -111,8 +95,6 @@ output "ssm_parameters" {
     db_url      = aws_ssm_parameter.db_url.name
     db_username = aws_ssm_parameter.db_username.name
     db_password = aws_ssm_parameter.db_password.name
-    ssh_user    = aws_ssm_parameter.ssh_user.name
-    ssh_private_key = module.ec2.private_key_path != "기존 키 사용 중" ? aws_ssm_parameter.ssh_private_key[0].name : "키 파라미터가 생성되지 않았습니다"
     codedeploy_app = aws_ssm_parameter.codedeploy_app.name
     codedeploy_group = aws_ssm_parameter.codedeploy_group.name
     deployment_bucket = aws_ssm_parameter.deployment_bucket.name
