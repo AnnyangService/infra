@@ -70,38 +70,38 @@ resource "aws_ssm_parameter" "ssh_private_key" {
 resource "aws_ssm_parameter" "deployment_bucket" {
   name  = "/${local.project_name}/deploy/api-server/bucket"
   type  = "String"
-  value = aws_s3_bucket.app_deploy.bucket
+  value = module.s3-for-codedeploy.deployment_bucket
   
   tags = {
     Name = "${local.project_name}-api-server-deployment-bucket"
   }
   
-  depends_on = [aws_s3_bucket.app_deploy]
+  depends_on = [module.s3-for-codedeploy]
 }
 
 # CodeDeploy 관련 SSM 파라미터 저장
 resource "aws_ssm_parameter" "codedeploy_app" {
   name  = "/${local.project_name}/deploy/api-server/app_name"
   type  = "String"
-  value = aws_codedeploy_app.app.name
+  value = module.codedeploy.codedeploy_app_name
   
   tags = {
     Name = "${local.project_name}-codedeploy-api-server-app"
   }
   
-  depends_on = [aws_codedeploy_app.app]
+  depends_on = [module.codedeploy]
 }
 
 resource "aws_ssm_parameter" "codedeploy_group" {
   name  = "/${local.project_name}/deploy/api-server/group_name"
   type  = "String"
-  value = aws_codedeploy_deployment_group.app_deploy_group.deployment_group_name
+  value = module.codedeploy.codedeploy_deployment_group
   
   tags = {
     Name = "${local.project_name}-codedeploy-api-server-group"
   }
   
-  depends_on = [aws_codedeploy_deployment_group.app_deploy_group]
+  depends_on = [module.codedeploy]
 }
 
 # SSM 파라미터 출력값
