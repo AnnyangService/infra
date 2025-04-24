@@ -31,6 +31,9 @@ data "http" "myip" {
 locals {
   my_ip = "${data.http.myip.response_body}/32"
   project_name = "annyang"
+  app_port = 8080
+  domain_name = "hi-meow.kro.kr"
+  health_check_path = "/health"
 }
 
 module "vpc" {
@@ -46,6 +49,7 @@ module "sg" {
   project_name = local.project_name
   vpc_id       = module.vpc.vpc_id
   admin_ip     = local.my_ip  # 현재 IP 주소 전달
+  app_port     = local.app_port
 }
 
 module "rds" {
@@ -81,14 +85,27 @@ module "ec2" {
   security_group_id = module.sg.ec2_security_group_id
 }
 
-module "codedeploy" {
-  source = "./modules/codedeploy"
+module "alb" {
+  source = "./modules/alb"
 
-  project_name = local.project_name
+  project_name         = local.project_name
+  vpc_id               = module.vpc.vpc_id
+  public_subnet_ids    = module.vpc.public_subnet_ids
+  alb_security_group_id = module.sg.alb_security_group_id
+  instance_id          = module.ec2.instance_id
+  target_port          = local.app_port
+  health_check_path    = local.health_check_path
+  domain_name          = local.domain_name
 }
 
 module "s3-for-codedeploy" {
   source = "./modules/s3-for-codedeploy"
+
+  project_name = local.project_name
+}
+
+module "codedeploy" {
+  source = "./modules/codedeploy"
 
   project_name = local.project_name
 }

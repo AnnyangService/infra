@@ -1,3 +1,43 @@
+# ALB 보안 그룹 (먼저 정의하여 EC2 보안그룹에서 참조할 수 있도록 함)
+resource "aws_security_group" "alb" {
+  name        = "${var.project_name}-alb-sg"
+  description = "Security group for ALB"
+  vpc_id      = var.vpc_id
+
+  # HTTP 트래픽 허용
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTP traffic"
+  }
+
+  # HTTPS 트래픽 허용
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTPS traffic"
+  }
+
+  # 아웃바운드 트래픽 허용
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-alb-sg"
+    Application = var.project_name
+    ManagedBy   = "terraform"
+  }
+}
+
 # EC2 보안 그룹
 resource "aws_security_group" "ec2" {
   name        = "${var.project_name}-api-server-ec2-sg"
@@ -10,6 +50,16 @@ resource "aws_security_group" "ec2" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = [var.admin_ip]
+    description = "Allow SSH access from admin IP"
+  }
+
+  # ALB로부터의 트래픽 허용
+  ingress {
+    from_port       = var.app_port
+    to_port         = var.app_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+    description     = "Allow traffic from ALB to EC2 instance"
   }
 
   # 모든 아웃바운드 트래픽 허용
@@ -18,6 +68,7 @@ resource "aws_security_group" "ec2" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
 
   tags = {
