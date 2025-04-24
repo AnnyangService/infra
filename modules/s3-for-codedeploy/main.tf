@@ -8,6 +8,8 @@ resource "aws_s3_bucket" "app_deploy" {
   tags = {
     Name = "${var.project_name}-api-server-deploy"
   }
+
+  force_destroy = true
 }
 
 # 버킷 액세스 관련 설정
