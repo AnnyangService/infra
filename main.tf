@@ -87,6 +87,12 @@ module "codedeploy" {
   project_name = local.project_name
 }
 
+module "s3" {
+  source = "./modules/s3"
+
+  project_name = local.project_name
+}
+
 # 출력값 정의
 output "ssh_command" {
   description = "SSH 접속 명령어"
