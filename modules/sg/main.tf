@@ -13,6 +13,15 @@ resource "aws_security_group" "alb" {
     description = "Allow HTTP traffic"
   }
 
+  # HTTPS 트래픽 허용
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTPS traffic"
+  }
+
   # 아웃바운드 트래픽 허용
   egress {
     from_port   = 0

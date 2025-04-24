@@ -17,3 +17,18 @@ output "http_listener_arn" {
   description = "HTTP 리스너 ARN"
   value       = aws_lb_listener.http.arn
 }
+
+output "https_listener_arn" {
+  description = "HTTPS 리스너 ARN"
+  value       = aws_lb_listener.https.arn
+}
+
+output "acm_certificate_arn" {
+  description = "메인 도메인 ACM 인증서 ARN"
+  value       = data.aws_acm_certificate.main_domain.arn
+}
+
+output "acm_wildcard_certificate_arn" {
+  description = "와일드카드 도메인 ACM 인증서 ARN"
+  value       = data.aws_acm_certificate.wildcard_domain.arn
+}

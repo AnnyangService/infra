@@ -95,6 +95,7 @@ module "alb" {
   instance_id          = module.ec2.instance_id
   target_port          = local.app_port
   health_check_path    = local.health_check_path
+  domain_name          = "hi-meow.kro.kr"
 }
 
 # 출력값 정의
@@ -115,5 +116,5 @@ output "alb_dns_name" {
 
 output "app_url" {
   description = "애플리케이션 접속 URL"
-  value       = "http://${module.alb.alb_dns_name}"
+  value       = "https://hi-meow.kro.kr"
 } 

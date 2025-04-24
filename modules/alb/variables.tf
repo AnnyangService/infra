@@ -32,3 +32,8 @@ variable "health_check_path" {
   description = "ALB 헬스 체크 경로"
   type        = string
 }
+
+variable "domain_name" {
+  description = "ALB에 연결할 도메인 이름"
+  type        = string
+}
