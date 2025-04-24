@@ -87,8 +87,8 @@ module "codedeploy" {
   project_name = local.project_name
 }
 
-module "s3" {
-  source = "./modules/s3"
+module "s3-for-codedeploy" {
+  source = "./modules/s3-for-codedeploy"
 
   project_name = local.project_name
 }
