@@ -81,6 +81,12 @@ module "ec2" {
   security_group_id = module.sg.ec2_security_group_id
 }
 
+module "codedeploy" {
+  source = "./modules/codedeploy"
+
+  project_name = local.project_name
+}
+
 # 출력값 정의
 output "ssh_command" {
   description = "SSH 접속 명령어"
