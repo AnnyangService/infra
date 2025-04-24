@@ -16,6 +16,10 @@ terraform {
       source  = "hashicorp/local"
       version = "~> 2.4"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 }
 
@@ -32,6 +36,7 @@ locals {
   my_ip = "${data.http.myip.response_body}/32"
   project_name = "annyang"
   app_port = 8080
+  domain_name = "hi-meow.kro.kr"
   health_check_path = "/health"
 }
 
@@ -84,7 +89,12 @@ module "ec2" {
   security_group_id = module.sg.ec2_security_group_id
 }
 
-# ALB 모듈 호출
+module "acm" {
+  source = "./modules/acm"
+
+  domain_name = local.domain_name
+}
+
 module "alb" {
   source = "./modules/alb"
 
@@ -95,26 +105,19 @@ module "alb" {
   instance_id          = module.ec2.instance_id
   target_port          = local.app_port
   health_check_path    = local.health_check_path
-  domain_name          = "hi-meow.kro.kr"
+  domain_name          = local.domain_name
+  certificate_arn      = module.acm.certificate_arn
+  wildcard_certificate_arn = module.acm.wildcard_certificate_arn
 }
 
-# 출력값 정의
-output "ssh_command" {
-  description = "SSH 접속 명령어"
-  value       = module.ec2.ssh_command
+module "s3-for-codedeploy" {
+  source = "./modules/s3-for-codedeploy"
+
+  project_name = local.project_name
 }
 
-output "rds_endpoint" {
-  description = "RDS 엔드포인트"
-  value       = module.rds.db_instance_endpoint
-}
+module "codedeploy" {
+  source = "./modules/codedeploy"
 
-output "alb_dns_name" {
-  description = "ALB DNS 이름"
-  value       = module.alb.alb_dns_name
+  project_name = local.project_name
 }
-
-output "app_url" {
-  description = "애플리케이션 접속 URL"
-  value       = "https://hi-meow.kro.kr"
-} 
