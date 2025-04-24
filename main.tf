@@ -85,6 +85,12 @@ module "ec2" {
   security_group_id = module.sg.ec2_security_group_id
 }
 
+module "acm" {
+  source = "./modules/acm"
+
+  domain_name = local.domain_name
+}
+
 module "alb" {
   source = "./modules/alb"
 
@@ -96,6 +102,8 @@ module "alb" {
   target_port          = local.app_port
   health_check_path    = local.health_check_path
   domain_name          = local.domain_name
+  certificate_arn      = module.acm.certificate_arn
+  wildcard_certificate_arn = module.acm.wildcard_certificate_arn
 }
 
 module "s3-for-codedeploy" {

@@ -37,3 +37,13 @@ variable "domain_name" {
   description = "ALB에 연결할 도메인 이름"
   type        = string
 }
+
+variable "certificate_arn" {
+  description = "메인 도메인 인증서 ARN"
+  type        = string
+}
+
+variable "wildcard_certificate_arn" {
+  description = "와일드카드 도메인 인증서 ARN"
+  type        = string
+}
