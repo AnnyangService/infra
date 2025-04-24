@@ -31,6 +31,8 @@ data "http" "myip" {
 locals {
   my_ip = "${data.http.myip.response_body}/32"
   project_name = "annyang"
+  app_port = 8080
+  health_check_path = "/health"
 }
 
 module "vpc" {
@@ -46,6 +48,7 @@ module "sg" {
   project_name = local.project_name
   vpc_id       = module.vpc.vpc_id
   admin_ip     = local.my_ip  # 현재 IP 주소 전달
+  app_port     = local.app_port
 }
 
 module "rds" {
@@ -81,6 +84,20 @@ module "ec2" {
   security_group_id = module.sg.ec2_security_group_id
 }
 
+# ALB 모듈 호출
+module "alb" {
+  source = "./modules/alb"
+
+  project_name         = local.project_name
+  vpc_id               = module.vpc.vpc_id
+  public_subnet_ids    = module.vpc.public_subnet_ids
+  alb_security_group_id = module.sg.alb_security_group_id
+  instance_id          = module.ec2.instance_id
+  target_port          = local.app_port
+  health_check_path    = local.health_check_path
+  domain_name          = "hi-meow.kro.kr"
+}
+
 # 출력값 정의
 output "ssh_command" {
   description = "SSH 접속 명령어"
@@ -92,7 +109,12 @@ output "rds_endpoint" {
   value       = module.rds.db_instance_endpoint
 }
 
-output "mysql_connection_command" {
-  description = "MariaDB 접속 명령어"
-  value       = "mysql -h ${module.rds.db_instance_address} -P ${module.rds.db_instance_port} -u ${module.rds.db_instance_username} -p"
+output "alb_dns_name" {
+  description = "ALB DNS 이름"
+  value       = module.alb.alb_dns_name
+}
+
+output "app_url" {
+  description = "애플리케이션 접속 URL"
+  value       = "https://hi-meow.kro.kr"
 } 
