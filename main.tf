@@ -92,19 +92,3 @@ module "s3-for-codedeploy" {
 
   project_name = local.project_name
 }
-
-# 출력값 정의
-output "ssh_command" {
-  description = "SSH 접속 명령어"
-  value       = module.ec2.ssh_command
-}
-
-output "rds_endpoint" {
-  description = "RDS 엔드포인트"
-  value       = module.rds.db_instance_endpoint
-}
-
-output "mysql_connection_command" {
-  description = "MariaDB 접속 명령어"
-  value       = "mysql -h ${module.rds.db_instance_address} -P ${module.rds.db_instance_port} -u ${module.rds.db_instance_username} -p"
-} 
