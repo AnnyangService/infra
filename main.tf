@@ -38,6 +38,7 @@ locals {
   app_port = 8080
   domain_name = "hi-meow.kro.kr"
   health_check_path = "/health"
+  frontend_domain_name = local.domain_name
 }
 
 module "vpc" {
@@ -120,4 +121,13 @@ module "codedeploy" {
   source = "./modules/codedeploy"
 
   project_name = local.project_name
+}
+
+# 프론트엔드 인프라 모듈 추가
+module "frontend" {
+  source = "./modules/s3-cloudfront"
+
+  project_name = local.project_name
+  frontend_domain_name = local.frontend_domain_name
+  certificate_arn = module.acm.cloudfront_certificate_arn
 }
