@@ -12,3 +12,14 @@ output "alb_dns_name" {
   description = "ALB DNS 이름 (외부 DNS 설정에 필요)"
   value       = module.alb.alb_dns_name
 }
+
+# 프론트엔드 관련 출력값 추가
+output "frontend_s3_bucket" {
+  description = "프론트엔드 S3 버킷 이름"
+  value       = module.frontend.s3_bucket_id
+}
+
+output "frontend_cloudfront_domain" {
+  description = "프론트엔드 CloudFront 도메인 이름"
+  value       = module.frontend.cloudfront_distribution_domain_name
+}
