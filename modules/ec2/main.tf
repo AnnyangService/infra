@@ -1,32 +1,48 @@
 # SSH 키 페어 생성
 locals {
-  # 키 파일이 이미 존재하는지 확인하고 create_key_pair 값을 결정
   key_name = "${var.project_name}-key"
-  key_file_path = "${path.cwd}/generated/${local.key_name}.pem"
+  key_file_path = "${path.cwd}/generated/${local.key_name}"
+  key_dir = "${path.cwd}/generated"
   should_create_key = !fileexists(local.key_file_path)
+}
+
+# generated 디렉토리 생성
+resource "local_file" "ensure_directory" {
+  count    = local.should_create_key ? 1 : 0
+  filename = "${local.key_dir}/.keep"
+  content  = ""
+
+  provisioner "local-exec" {
+    command = "mkdir -p ${local.key_dir}"
+  }
 }
 
 resource "tls_private_key" "ssh" {
   count     = local.should_create_key ? 1 : 0
   algorithm = "RSA"
   rsa_bits  = 4096
+
+  depends_on = [local_file.ensure_directory]
 }
 
 # 로컬에 PEM 파일 저장
 resource "local_file" "private_key" {
   count    = local.should_create_key ? 1 : 0
-  content  = tls_private_key.ssh[0].private_key_pem
+  content  = local.should_create_key ? tls_private_key.ssh[0].private_key_pem : ""
   filename = local.key_file_path
 
   # 파일 권한 설정 (0600: 소유자만 읽기/쓰기 가능)
   file_permission = "0600"
+
+  depends_on = [tls_private_key.ssh]
 }
 
 # AWS 키 페어 생성
 resource "aws_key_pair" "key_pair" {
-  count      = local.should_create_key ? 1 : 0
   key_name   = local.key_name
-  public_key = tls_private_key.ssh[0].public_key_openssh
+  public_key = file("${local.key_file_path}.pub")
+
+  depends_on = [local_file.private_key]
 }
 
 # CodeDeploy 에이전트 설치를 위한 사용자 데이터 스크립트
@@ -67,7 +83,7 @@ resource "aws_instance" "main" {
   vpc_security_group_ids = [var.security_group_id]
   
   # 키 페어 연결
-  key_name               = local.key_name
+  key_name               = aws_key_pair.key_pair.key_name
   
   # IAM 인스턴스 프로파일 연결
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
@@ -83,4 +99,4 @@ resource "aws_instance" "main" {
     Application = var.project_name
     ManagedBy = "terraform"
   }
-} 
+}
