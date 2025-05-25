@@ -57,6 +57,12 @@ module "sg" {
   app_port     = local.app_port
 }
 
+module "s3-images" {
+  source = "./modules/s3-images"
+
+  project_name = local.project_name
+}
+
 module "rds" {
   source = "./modules/rds"
 
