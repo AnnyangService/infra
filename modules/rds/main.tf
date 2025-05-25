@@ -7,6 +7,48 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
+# 커스텀 파라미터 그룹 생성
+resource "aws_db_parameter_group" "main" {
+  name        = "${var.project_name}-db-params"
+  family      = "mariadb${split(".", var.engine_version)[0]}.${split(".", var.engine_version)[1]}"
+  description = "Custom parameter group for ${var.project_name} database"
+
+  parameter {
+    name  = "character_set_server"
+    value = "utf8mb4"
+  }
+
+  parameter {
+    name  = "collation_server"
+    value = "utf8mb4_unicode_ci"
+  }
+  
+  # MariaDB에 추가적인 UTF8 관련 파라미터 설정
+  parameter {
+    name  = "character_set_client"
+    value = "utf8mb4"
+  }
+
+  parameter {
+    name  = "character_set_connection"
+    value = "utf8mb4"
+  }
+
+  parameter {
+    name  = "character_set_database"
+    value = "utf8mb4"
+  }
+
+  parameter {
+    name  = "character_set_results"
+    value = "utf8mb4"
+  }
+  
+  tags = {
+    Name = "${var.project_name}-db-params"
+  }
+}
+
 resource "aws_db_instance" "main" {
   identifier           = "${var.project_name}-db"
   allocated_storage    = var.allocated_storage
@@ -17,7 +59,7 @@ resource "aws_db_instance" "main" {
   db_name              = var.db_name
   username             = var.username
   password             = var.password
-  parameter_group_name = var.parameter_group_name
+  parameter_group_name = aws_db_parameter_group.main.name  # 커스텀 파라미터 그룹 사용
   skip_final_snapshot  = true
   
   vpc_security_group_ids = [var.rds_security_group_id]
@@ -30,4 +72,4 @@ resource "aws_db_instance" "main" {
   tags = {
     Name = "${var.project_name}-db"
   }
-} 
+}
