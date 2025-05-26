@@ -11,4 +11,9 @@ output "rds_security_group_id" {
 output "alb_security_group_id" {
   description = "ALB용 보안 그룹 ID"
   value       = aws_security_group.alb.id
-} 
+}
+
+output "ai_server_security_group_id" {
+  description = "AI 서버용 보안 그룹 ID"
+  value       = aws_security_group.ai_server.id
+}
