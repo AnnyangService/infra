@@ -140,6 +140,9 @@ module "ec2-ai" {
   
   # AI 서버 보안 그룹 사용
   security_group_id = module.sg.ai_server_security_group_id
+  
+  # ECR 저장소 URL 전달
+  ecr_repository_url = module.ecr_ai_server.repository_url
 }
 
 # AI 서버용 ECR 저장소 모듈 추가

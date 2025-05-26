@@ -30,3 +30,15 @@ variable "security_group_id" {
   description = "EC2 인스턴스에 적용할 보안 그룹 ID"
   type        = string
 }
+
+variable "ecr_repository_url" {
+  description = "AI 서버용 ECR 저장소 URL"
+  type        = string
+  default     = ""  # 기본값은 빈 문자열로 설정, main.tf에서 실제 URL 지정
+}
+
+variable "port" {
+  description = "AI 서버가 실행될 포트"
+  type        = number
+  default     = 5000  # AI 서버의 기본 포트
+}

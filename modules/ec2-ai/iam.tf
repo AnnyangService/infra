@@ -28,6 +28,12 @@ resource "aws_iam_role_policy_attachment" "ec2_ssm_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# ECR 접근 권한 추가 (Docker 이미지 가져오기 위함)
+resource "aws_iam_role_policy_attachment" "ec2_ecr_policy" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 # IAM 인스턴스 프로파일 생성
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "${var.project_name}-ai-server-ec2-profile"

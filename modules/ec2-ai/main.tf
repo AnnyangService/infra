@@ -45,7 +45,7 @@ resource "aws_key_pair" "key_pair" {
   depends_on = [local_file.private_key]
 }
 
-# CodeDeploy 에이전트 설치를 위한 사용자 데이터 스크립트
+# 사용자 데이터 스크립트 - Docker 설치 및 ECR에서 Flask 이미지 가져오기
 locals {
   user_data = <<-EOF
 #!/bin/bash
@@ -53,21 +53,16 @@ locals {
 sudo dnf update -y
 sudo dnf install -y ruby wget git
 
-# Python 및 관련 도구 설치
-sudo dnf install -y python3 python3-pip python3-devel
-sudo pip3 install virtualenv
+# Docker 설치
+sudo dnf install -y docker
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -a -G docker ec2-user
 
-# Flask 및 관련 패키지 설치
-sudo pip3 install flask gunicorn
+# AWS CLI 설치 (ECR 인증에 필요)
+sudo dnf install -y awscli
 
-# 환경 변수 설정
-echo "export PATH=$PATH:/usr/local/bin" | sudo tee -a /etc/profile.d/python.sh
-sudo chmod +x /etc/profile.d/python.sh
-source /etc/profile.d/python.sh
-
-cd /home/ec2-user
-
-# 리전에 따른 CodeDeploy 에이전트 다운로드 URL 설정 (IMDSv2 호환)
+# CodeDeploy 에이전트 설치
 TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
 region=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
 wget https://aws-codedeploy-$region.s3.$region.amazonaws.com/latest/install
@@ -75,6 +70,14 @@ chmod +x ./install
 sudo ./install auto
 sudo systemctl enable codedeploy-agent
 sudo systemctl start codedeploy-agent
+
+# ECR 로그인 및 이미지 가져오기
+account_id=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep accountId | cut -d\" -f4)
+aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $account_id.dkr.ecr.$region.amazonaws.com
+
+# Flask 도커 이미지 가져오기 및 실행
+docker pull $account_id.dkr.ecr.$region.amazonaws.com/flask-app:latest
+docker run -d -p ${var.port}:5000 $account_id.dkr.ecr.$region.amazonaws.com/flask-app:latest
 EOF
 }
 

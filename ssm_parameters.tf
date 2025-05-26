@@ -55,7 +55,7 @@ resource "aws_ssm_parameter" "ai_server_endpoint" {
   name        = "/${local.project_name}/ai-server/url"
   description = "AI Server Private IP Endpoint"
   type        = "String"
-  value       = module.ec2-ai.private_ip
+  value       = module.ec2-ai.ai_server_url
   
   tags = {
     Name = "${local.project_name}-ai-server-endpoint"
