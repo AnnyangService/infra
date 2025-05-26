@@ -13,6 +13,17 @@ output "alb_dns_name" {
   value       = module.alb.alb_dns_name
 }
 
+# AI 서버 관련 출력값 추가
+output "ai_server_private_ip" {
+  description = "AI 서버 프라이빗 IP 주소"
+  value       = module.ec2-ai.private_ip
+}
+
+output "ai_server_ssh_command" {
+  description = "AI 서버 SSH 접속 명령어 (API 서버를 통한 터널링 필요)"
+  value       = module.ec2-ai.ssh_command
+}
+
 # 프론트엔드 관련 출력값 추가
 output "frontend_s3_bucket" {
   description = "프론트엔드 S3 버킷 이름"

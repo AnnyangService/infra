@@ -96,4 +96,44 @@ resource "aws_security_group" "rds" {
   tags = {
     Name = "${var.project_name}-rds-sg"
   }
-} 
+}
+
+# AI 서버 보안 그룹
+resource "aws_security_group" "ai_server" {
+  name        = "${var.project_name}-ai-server-sg"
+  description = "Security group for AI Server instances"
+  vpc_id      = var.vpc_id
+
+  # API 서버 보안 그룹으로부터만 접속 허용 (API 서버만 AI 서버에 접근 가능)
+  ingress {
+    from_port       = var.ai_server_port
+    to_port         = var.ai_server_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ec2.id]
+    description     = "Allow traffic from API Server to AI Server"
+  }
+
+  # SSH 접근 허용
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.admin_ip]
+    description = "Allow SSH access from admin IP"
+  }
+
+  # 모든 아웃바운드 트래픽 허용
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-ai-server-sg"
+    Application = var.project_name
+    ManagedBy   = "terraform"
+  }
+}

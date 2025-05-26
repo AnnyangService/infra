@@ -17,4 +17,10 @@ variable "admin_ip" {
 variable "app_port" {
   description = "애플리케이션이 실행될 포트"
   type        = number
-} 
+}
+
+variable "ai_server_port" {
+  description = "AI 서버가 실행될 포트"
+  type        = number
+  default     = 5000
+}

@@ -129,6 +129,19 @@ module "codedeploy" {
   project_name = local.project_name
 }
 
+# AI 서버 모듈 추가
+module "ec2-ai" {
+  source = "./modules/ec2-ai"
+
+  project_name = local.project_name
+  subnet_id    = module.vpc.public_subnet_ids[1]  # 퍼블릭 서브넷에 배치 (비용 최적화)
+  instance_type = "t3.micro"  # 프리티어 적합하고 모든 가용 영역에서 지원되는 인스턴스 타입
+  associate_public_ip = true  # 퍼블릭 IP 할당
+  
+  # AI 서버 보안 그룹 사용
+  security_group_id = module.sg.ai_server_security_group_id
+}
+
 # 프론트엔드 인프라 모듈 추가
 module "frontend" {
   source = "./modules/s3-cloudfront"

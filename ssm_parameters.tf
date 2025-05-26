@@ -50,6 +50,21 @@ resource "aws_ssm_parameter" "ssh_user" {
   }
 }
 
+# AI 서버 엔드포인트 SSM 파라미터 저장
+resource "aws_ssm_parameter" "ai_server_endpoint" {
+  name        = "/${local.project_name}/ai-server/url"
+  description = "AI Server Private IP Endpoint"
+  type        = "String"
+  value       = module.ec2-ai.private_ip
+  
+  tags = {
+    Name = "${local.project_name}-ai-server-endpoint"
+    Application = local.project_name
+  }
+  
+  depends_on = [module.ec2-ai]
+}
+
 # S3 배포 버킷 파라미터 저장
 resource "aws_ssm_parameter" "deployment_bucket" {
   name  = "/${local.project_name}/deploy/api-server/bucket"
