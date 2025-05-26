@@ -99,6 +99,18 @@ resource "aws_instance" "ai_server" {
   # 공개 IP 할당
   associate_public_ip_address = var.associate_public_ip
 
+  # 루트 볼륨 크기 설정 - 프리티어 최대 한도
+  root_block_device {
+    volume_size           = 30  # 프리티어 최대 한도 30GiB
+    volume_type           = "gp3"  # 범용 SSD (프리티어에서 지원)
+    encrypted             = true  # 보안을 위한 암호화 적용
+    delete_on_termination = true  # 인스턴스 종료 시 볼륨 삭제
+    
+    # 프리티어에서 무료로 사용 가능한 최적의 성능 설정
+    throughput            = 125  # 최대 프리티어 호환 처리량 (MB/s)
+    iops                  = 3000 # 최대 프리티어 호환 IOPS
+  }
+
   tags = {
     Name = "${var.project_name}-ai-server-ec2"
     Application = var.project_name
