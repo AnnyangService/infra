@@ -10,7 +10,7 @@ output "private_ip" {
 
 output "ai_server_url" {
   description = "AI 서버 URL (퍼블릭 IP)"
-  value       = "http://${aws_instance.ai_server.public_ip}:${var.port}"
+  value       = "http://${aws_instance.ai_server.private_ip}:${var.port}"
 }
 
 output "ssh_command" {

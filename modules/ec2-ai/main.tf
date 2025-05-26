@@ -62,22 +62,12 @@ sudo usermod -a -G docker ec2-user
 # AWS CLI 설치 (ECR 인증에 필요)
 sudo dnf install -y awscli
 
-# CodeDeploy 에이전트 설치
-TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-region=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
-wget https://aws-codedeploy-$region.s3.$region.amazonaws.com/latest/install
-chmod +x ./install
-sudo ./install auto
-sudo systemctl enable codedeploy-agent
-sudo systemctl start codedeploy-agent
-
 # ECR 로그인 및 이미지 가져오기
-account_id=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep accountId | cut -d\" -f4)
-aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $account_id.dkr.ecr.$region.amazonaws.com
+aws ecr get-login-password --region $region | docker login --username AWS --password-stdin ${var.ecr_repository_url}
 
 # Flask 도커 이미지 가져오기 및 실행
-docker pull $account_id.dkr.ecr.$region.amazonaws.com/flask-app:latest
-docker run -d -p ${var.port}:5000 $account_id.dkr.ecr.$region.amazonaws.com/flask-app:latest
+docker pull ${var.ecr_repository_url}:latest
+docker run -d -p ${var.port}:5000 ${var.ecr_repository_url}:latest
 EOF
 }
 
