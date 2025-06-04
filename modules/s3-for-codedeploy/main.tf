@@ -8,13 +8,11 @@ resource "random_id" "bucket_suffix" {
 
 # 애플리케이션 배포를 위한 S3 버킷
 resource "aws_s3_bucket" "app_deploy" {
-  bucket = "${var.project_name}-api-server-deploy-${data.aws_caller_identity.current.account_id}-${random_id.bucket_suffix.hex}"
+  bucket = "${var.project_name}-for-codedeploy"
   
   tags = {
-    Name = "${var.project_name}-api-server-deploy"
+    Name = "${var.project_name}-for-codedeploy"
   }
-
-  force_destroy = true
 }
 
 # 버킷 액세스 관련 설정
