@@ -140,21 +140,6 @@ module "ec2-ai" {
   
   # AI 서버 보안 그룹 사용
   security_group_id = module.sg.ai_server_security_group_id
-  
-  # ECR 저장소 URL 전달
-  ecr_repository_url = module.ecr_ai_server.repository_url
-}
-
-# AI 서버용 ECR 저장소 모듈 추가
-module "ecr_ai_server" {
-  source = "./modules/ecr"
-
-  repository_name = "ai-server"
-  environment = "production"
-  scan_on_push = true
-  max_image_count = 30
-  # EC2 인스턴스 역할 등에서 접근할 수 있도록 설정 가능
-  principal_arns = ["*"] # 필요시 특정 IAM 역할이나 사용자로 제한 가능
 }
 
 # 프론트엔드 인프라 모듈 추가

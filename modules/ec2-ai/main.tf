@@ -62,12 +62,15 @@ sudo usermod -a -G docker ec2-user
 # AWS CLI 설치 (ECR 인증에 필요)
 sudo dnf install -y awscli
 
-# ECR 로그인 및 이미지 가져오기
-aws ecr get-login-password --region $region | docker login --username AWS --password-stdin ${var.ecr_repository_url}
+# aws s3 cp s3://annyang-for-codedeploy/my-app-image.tar.gz ./my-app-image.tar.gz
 
-# Flask 도커 이미지 가져오기 및 실행
-docker pull ${var.ecr_repository_url}:latest
-docker run -d -p ${var.port}:5000 ${var.ecr_repository_url}:latest
+# # gzip 압축 해제
+# gunzip my-app-image.tar.gz
+
+# # Docker에 이미지 로드
+# sudo docker load -i my-app-image.tar
+
+# sudo docker run -d -p 5000:5000 --name my-flask-app my-app-image
 EOF
 }
 
