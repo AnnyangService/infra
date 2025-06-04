@@ -17,7 +17,7 @@ variable "ami_id" {
 variable "instance_type" {
   description = "EC2 인스턴스 타입"
   type        = string
-  default     = "t3.micro"  # 프리티어 적합하고 모든 가용 영역에서 지원되는 인스턴스 타입
+  default     = "t3.small"  # 프리티어는 아니지만 AI 서버는 프리티어로 운영하기 어려움
 }
 
 variable "associate_public_ip" {
@@ -29,12 +29,6 @@ variable "associate_public_ip" {
 variable "security_group_id" {
   description = "EC2 인스턴스에 적용할 보안 그룹 ID"
   type        = string
-}
-
-variable "ecr_repository_url" {
-  description = "AI 서버용 ECR 저장소 URL"
-  type        = string
-  default     = ""  # 기본값은 빈 문자열로 설정, main.tf에서 실제 URL 지정
 }
 
 variable "port" {

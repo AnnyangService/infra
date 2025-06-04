@@ -135,26 +135,10 @@ module "ec2-ai" {
 
   project_name = local.project_name
   subnet_id    = module.vpc.public_subnet_ids[1]  # 퍼블릭 서브넷에 배치 (비용 최적화)
-  instance_type = "t3.micro"  # 프리티어 적합하고 모든 가용 영역에서 지원되는 인스턴스 타입
   associate_public_ip = true  # 퍼블릭 IP 할당
   
   # AI 서버 보안 그룹 사용
   security_group_id = module.sg.ai_server_security_group_id
-  
-  # ECR 저장소 URL 전달
-  ecr_repository_url = module.ecr_ai_server.repository_url
-}
-
-# AI 서버용 ECR 저장소 모듈 추가
-module "ecr_ai_server" {
-  source = "./modules/ecr"
-
-  repository_name = "ai-server"
-  environment = "production"
-  scan_on_push = true
-  max_image_count = 30
-  # EC2 인스턴스 역할 등에서 접근할 수 있도록 설정 가능
-  principal_arns = ["*"] # 필요시 특정 IAM 역할이나 사용자로 제한 가능
 }
 
 # 프론트엔드 인프라 모듈 추가

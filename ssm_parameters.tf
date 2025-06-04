@@ -67,12 +67,12 @@ resource "aws_ssm_parameter" "ai_server_endpoint" {
 
 # S3 배포 버킷 파라미터 저장
 resource "aws_ssm_parameter" "deployment_bucket" {
-  name  = "/${local.project_name}/deploy/api-server/bucket"
+  name  = "/${local.project_name}/code-deploy/bucket"
   type  = "String"
   value = module.s3-for-codedeploy.deployment_bucket
   
   tags = {
-    Name = "${local.project_name}-api-server-deployment-bucket"
+    Name = "${local.project_name}-code-deploy-bucket"
   }
   
   depends_on = [module.s3-for-codedeploy]
