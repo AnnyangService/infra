@@ -17,7 +17,7 @@ variable "ami_id" {
 variable "instance_type" {
   description = "EC2 인스턴스 타입"
   type        = string
-  default     = "t3.small"  # 프리티어는 아니지만 AI 서버는 프리티어로 운영하기 어려움
+  default     = "t3.large"  # 프리티어는 아니지만 AI 서버는 프리티어로 운영하기 어려움
 }
 
 variable "associate_public_ip" {
