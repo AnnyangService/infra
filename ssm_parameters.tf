@@ -67,12 +67,12 @@ resource "aws_ssm_parameter" "ai_server_endpoint" {
 
 # S3 배포 버킷 파라미터 저장
 resource "aws_ssm_parameter" "deployment_bucket" {
-  name  = "/${local.project_name}/code-deploy/bucket"
+  name  = "/${local.project_name}/server-deploy/bucket"
   type  = "String"
   value = module.s3-for-codedeploy.deployment_bucket
   
   tags = {
-    Name = "${local.project_name}-code-deploy-bucket"
+    Name = "${local.project_name}-server-deploy-bucket"
   }
   
   depends_on = [module.s3-for-codedeploy]
@@ -80,24 +80,36 @@ resource "aws_ssm_parameter" "deployment_bucket" {
 
 # CodeDeploy 관련 SSM 파라미터 저장
 resource "aws_ssm_parameter" "codedeploy_app" {
-  name  = "/${local.project_name}/deploy/api-server/app_name"
+  name  = "/${local.project_name}/server-deploy/app_name"
   type  = "String"
   value = module.codedeploy.codedeploy_app_name
   
   tags = {
-    Name = "${local.project_name}-codedeploy-api-server-app"
+    Name = "${local.project_name}-server-deploy-app"
   }
   
   depends_on = [module.codedeploy]
 }
 
-resource "aws_ssm_parameter" "codedeploy_group" {
-  name  = "/${local.project_name}/deploy/api-server/group_name"
+resource "aws_ssm_parameter" "api_server_codedeploy_group" {
+  name  = "/${local.project_name}/server-deploy/api-server/group_name"
   type  = "String"
-  value = module.codedeploy.codedeploy_deployment_group
+  value = module.codedeploy.codedeploy_api_server_deployment_group
   
   tags = {
-    Name = "${local.project_name}-codedeploy-api-server-group"
+    Name = "${local.project_name}-api-server-deploy-group"
+  }
+  
+  depends_on = [module.codedeploy]
+}
+
+resource "aws_ssm_parameter" "ai_server_codedeploy_group" {
+  name  = "/${local.project_name}/server-deploy/ai-server/group_name"
+  type  = "String"
+  value = module.codedeploy.codedeploy_ai_server_deployment_group
+  
+  tags = {
+    Name = "${local.project_name}-ai-server-deploy-group"
   }
   
   depends_on = [module.codedeploy]
@@ -111,7 +123,7 @@ output "ssm_parameters" {
     db_username = aws_ssm_parameter.db_username.name
     db_password = aws_ssm_parameter.db_password.name
     codedeploy_app = aws_ssm_parameter.codedeploy_app.name
-    codedeploy_group = aws_ssm_parameter.codedeploy_group.name
+    codedeploy_group = aws_ssm_parameter.api_server_codedeploy_group.name
     deployment_bucket = aws_ssm_parameter.deployment_bucket.name
   }
 }

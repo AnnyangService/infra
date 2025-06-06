@@ -1,6 +1,6 @@
-# CodeDeploy 애플리케이션 생성
-resource "aws_codedeploy_app" "app" {
-  name             = "${var.project_name}-api-server"
+# CodeDeploy 애플리케이션 생성 (API 서버와 AI 서버 공용)
+resource "aws_codedeploy_app" "server-app" {
+  name             = "${var.project_name}-server-app"
   compute_platform = "Server"  # EC2/온프레미스 서버를 위한 플랫폼
 }
 
@@ -28,10 +28,39 @@ resource "aws_iam_role_policy_attachment" "codedeploy_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
 }
 
-# CodeDeploy 배포 그룹 설정
-resource "aws_codedeploy_deployment_group" "app_deploy_group" {
-  app_name              = aws_codedeploy_app.app.name
+# CodeDeploy 배포 그룹 설정 (API 서버용)
+resource "aws_codedeploy_deployment_group" "api_server_deploy_group" {
+  app_name              = aws_codedeploy_app.server-app.name
   deployment_group_name = "${var.project_name}-api-server-group"
+  service_role_arn      = aws_iam_role.codedeploy_role.arn
+
+    # EC2 태그 기반 배포 대상 설정
+  ec2_tag_set {
+    ec2_tag_filter {
+      key   = "Name"
+      type  = "KEY_AND_VALUE"
+      value = "${var.project_name}-api-server-ec2"
+    }
+  }
+
+  # 자동 롤백 설정
+  auto_rollback_configuration {
+    enabled = true
+    events  = ["DEPLOYMENT_FAILURE"]
+  }
+
+  # 배포 설정 (한 번에 모든 인스턴스 업데이트)
+  deployment_style {
+    deployment_option = "WITHOUT_TRAFFIC_CONTROL"
+    deployment_type   = "IN_PLACE"
+  }
+}
+
+# CodeDeploy 배포 그룹 설정 (AI 서버용)
+
+resource "aws_codedeploy_deployment_group" "ai_server_deploy_group" {
+  app_name              = aws_codedeploy_app.server-app.name
+  deployment_group_name = "${var.project_name}-ai-server-group"
   service_role_arn      = aws_iam_role.codedeploy_role.arn
 
   # EC2 태그 기반 배포 대상 설정
@@ -39,7 +68,7 @@ resource "aws_codedeploy_deployment_group" "app_deploy_group" {
     ec2_tag_filter {
       key   = "Name"
       type  = "KEY_AND_VALUE"
-      value = "${var.project_name}-api-server-ec2"
+      value = "${var.project_name}-ai-server-ec2"
     }
   }
 

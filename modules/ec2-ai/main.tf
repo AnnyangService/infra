@@ -59,18 +59,16 @@ sudo systemctl enable docker
 sudo systemctl start docker
 sudo usermod -a -G docker ec2-user
 
-# AWS CLI 설치 (ECR 인증에 필요)
-sudo dnf install -y awscli
+cd /home/ec2-user
 
-# aws s3 cp s3://annyang-for-codedeploy/my-app-image.tar.gz ./my-app-image.tar.gz
-
-# # gzip 압축 해제
-# gunzip my-app-image.tar.gz
-
-# # Docker에 이미지 로드
-# sudo docker load -i my-app-image.tar
-
-# sudo docker run -d -p 5000:5000 --name my-flask-app my-app-image
+# 리전에 따른 CodeDeploy 에이전트 다운로드 URL 설정 (IMDSv2 호환)
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+region=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
+wget https://aws-codedeploy-$region.s3.$region.amazonaws.com/latest/install
+chmod +x ./install
+sudo ./install auto
+sudo systemctl enable codedeploy-agent
+sudo systemctl start codedeploy-agent
 EOF
 }
 
