@@ -1,3 +1,10 @@
+data "aws_s3_bucket" "frontend" {
+  bucket = "${var.project_name}-frontend"
+}
+
+/**
+# S3 버킷 최초 생성 시에는 아래 리소스들을 사용하여 설정할 수 있습니다.
+
 resource "aws_s3_bucket" "frontend" {
   bucket = "${var.project_name}-frontend"
 
@@ -29,13 +36,15 @@ resource "aws_s3_bucket_versioning" "frontend" {
     status = "Enabled"
   }
 }
+*/
+
 
 resource "aws_cloudfront_origin_access_identity" "frontend_oai" {
   comment = "${var.project_name} frontend OAI"
 }
 
 resource "aws_s3_bucket_policy" "frontend" {
-  bucket = aws_s3_bucket.frontend.id
+  bucket = data.aws_s3_bucket.frontend.id  # 수정: aws_s3_bucket -> data.aws_s3_bucket
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -45,7 +54,7 @@ resource "aws_s3_bucket_policy" "frontend" {
           AWS = "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${aws_cloudfront_origin_access_identity.frontend_oai.id}"
         }
         Action   = "s3:GetObject"
-        Resource = "${aws_s3_bucket.frontend.arn}/*"
+        Resource = "${data.aws_s3_bucket.frontend.arn}/*"
       }
     ]
   })
@@ -63,8 +72,8 @@ resource "aws_cloudfront_distribution" "frontend" {
 
   # S3 오리진 - 프론트엔드 정적 파일용
   origin {
-    domain_name = aws_s3_bucket.frontend.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.frontend.bucket}"
+    domain_name = data.aws_s3_bucket.frontend.bucket_regional_domain_name
+    origin_id   = "S3-${data.aws_s3_bucket.frontend.bucket}"
 
     s3_origin_config {
       origin_access_identity = aws_cloudfront_origin_access_identity.frontend_oai.cloudfront_access_identity_path
@@ -75,7 +84,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "S3-${aws_s3_bucket.frontend.bucket}"
+    target_origin_id = "S3-${data.aws_s3_bucket.frontend.bucket}"
 
     forwarded_values {
       query_string = false

@@ -1,12 +1,11 @@
-# 현재 AWS 계정 ID 가져오기
-data "aws_caller_identity" "current" {}
-
-# 현재 타임스탬프를 가져와 버킷 이름에 추가 (고유성 확보용)
-resource "random_id" "bucket_suffix" {
-  byte_length = 4
+# 애플리케이션 배포를 위한 S3 버킷
+data "aws_s3_bucket" "app_deploy" {
+  bucket = "${var.project_name}-for-codedeploy"
 }
 
-# 애플리케이션 배포를 위한 S3 버킷
+/**
+# S3 버킷 최초 생성 시에는 아래 리소스들을 사용하여 설정할 수 있습니다.
+
 resource "aws_s3_bucket" "app_deploy" {
   bucket = "${var.project_name}-for-codedeploy"
   
@@ -53,3 +52,4 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "app_deploy" {
     }
   }
 }
+*/

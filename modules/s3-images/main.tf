@@ -1,3 +1,11 @@
+# 기존 S3 버킷을 가져오는 data source
+data "aws_s3_bucket" "images" {
+  bucket = "${var.project_name}-images"
+}
+
+/**
+# S3 버킷 최초 생성 시에는 아래 리소스들을 사용하여 설정할 수 있습니다.
+
 resource "aws_s3_bucket" "images" {
   bucket = "${var.project_name}-images"
 
@@ -52,3 +60,4 @@ resource "aws_s3_bucket_cors_configuration" "images" {
     max_age_seconds = 3000
   }
 }
+*/
