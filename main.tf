@@ -141,6 +141,13 @@ module "ec2-ai" {
   security_group_id = module.sg.ai_server_security_group_id
 }
 
+# Terraform 백엔드용 S3 버킷 모듈 (일회성 생성용)
+# module "terraform_backend" {
+#   source = "./modules/s3-for-terraform"
+
+#   project_name = local.project_name
+# }
+
 # 프론트엔드 인프라 모듈 추가
 module "frontend" {
   source = "./modules/s3-cloudfront"
