@@ -13,12 +13,13 @@ output "private_ip" {
   value       = aws_instance.main.private_ip
 }
 
-output "private_key_path" {
-  description = "로컬에 저장된 프라이빗 키 경로"
-  value       = local.key_file_path
+output "key_pair_name" {
+  description = "SSH 키 페어 이름"
+  value       = aws_key_pair.key_pair.key_name
 }
 
-output "ssh_command" {
-  description = "SSH 접속 명령어"
-  value       = "ssh -i ${local.key_file_path} ec2-user@${aws_instance.main.public_ip}"
-} 
+output "private_key_pem" {
+  description = "프라이빗 키 (PEM 형식)"
+  value       = tls_private_key.ssh.private_key_pem
+  sensitive   = true
+}

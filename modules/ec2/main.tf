@@ -1,48 +1,33 @@
 # SSH 키 페어 생성
 locals {
   key_name = "${var.project_name}-key"
-  key_file_path = "${path.cwd}/generated/${local.key_name}"
-  key_dir = "${path.cwd}/generated"
-  should_create_key = !fileexists(local.key_file_path)
 }
 
-# generated 디렉토리 생성
-resource "local_file" "ensure_directory" {
-  count    = local.should_create_key ? 1 : 0
-  filename = "${local.key_dir}/.keep"
-  content  = ""
-
-  provisioner "local-exec" {
-    command = "mkdir -p ${local.key_dir}"
-  }
-}
-
+# TLS 프라이빗 키 생성
 resource "tls_private_key" "ssh" {
-  count     = local.should_create_key ? 1 : 0
   algorithm = "RSA"
   rsa_bits  = 4096
-
-  depends_on = [local_file.ensure_directory]
 }
 
-# 로컬에 PEM 파일 저장
-resource "local_file" "private_key" {
-  count    = local.should_create_key ? 1 : 0
-  content  = local.should_create_key ? tls_private_key.ssh[0].private_key_pem : ""
-  filename = local.key_file_path
-
-  # 파일 권한 설정 (0600: 소유자만 읽기/쓰기 가능)
-  file_permission = "0600"
-
-  depends_on = [tls_private_key.ssh]
-}
-
-# AWS 키 페어 생성
+# AWS 키 페어 생성 (퍼블릭 키는 tls_private_key 리소스에서 직접 가져옴)
 resource "aws_key_pair" "key_pair" {
   key_name   = local.key_name
-  public_key = file("${local.key_file_path}.pub")
+  public_key = tls_private_key.ssh.public_key_openssh
+}
 
-  depends_on = [local_file.private_key]
+# 로컬 환경에서만 PEM 파일 저장 (GitHub Actions에서는 실행되지 않음)
+resource "local_file" "private_key" {
+  count = var.save_private_key_locally ? 1 : 0
+  
+  content  = tls_private_key.ssh.private_key_pem
+  filename = "${path.cwd}/generated/${local.key_name}.pem"
+  
+  file_permission = "0600"
+  
+  # 디렉토리 생성
+  provisioner "local-exec" {
+    command = "mkdir -p ${path.cwd}/generated"
+  }
 }
 
 # CodeDeploy 에이전트 설치를 위한 사용자 데이터 스크립트
@@ -98,5 +83,42 @@ resource "aws_instance" "main" {
     Name = "${var.project_name}-api-server-ec2"
     Application = var.project_name
     ManagedBy = "terraform"
+  }
+}
+
+# SSH 키를 SSM Parameter Store에 저장 (안전한 접근을 위해)
+resource "aws_ssm_parameter" "ec2_private_key" {
+  name  = "/${var.project_name}/ec2/ssh/private-key"
+  type  = "SecureString"
+  value = tls_private_key.ssh.private_key_pem
+  
+  description = "API 서버 SSH 프라이빗 키"
+  
+  tags = {
+    Name        = "${var.project_name}-api-server-ssh-key"
+    Application = var.project_name
+    ManagedBy   = "terraform"
+  }
+}
+
+# 접속 정보도 함께 저장
+resource "aws_ssm_parameter" "ec2_connection_info" {
+  name  = "/${var.project_name}/ec2/connection/info"
+  type  = "String"
+  value = jsonencode({
+    public_ip    = aws_instance.main.public_ip
+    private_ip   = aws_instance.main.private_ip
+    instance_id  = aws_instance.main.id
+    key_name     = aws_key_pair.key_pair.key_name
+    user         = "ec2-user"
+    ssh_command  = "ssh -i <key_file> ec2-user@${aws_instance.main.public_ip}"
+  })
+  
+  description = "API 서버 접속 정보"
+  
+  tags = {
+    Name        = "${var.project_name}-api-server-connection-info"
+    Application = var.project_name
+    ManagedBy   = "terraform"
   }
 }

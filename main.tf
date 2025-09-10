@@ -94,6 +94,7 @@ module "ec2" {
   
   # 보안 그룹 모듈에서 생성된 ID 사용
   security_group_id = module.sg.ec2_security_group_id
+  save_private_key_locally = false
 }
 
 module "acm" {
@@ -139,6 +140,7 @@ module "ec2-ai" {
   
   # AI 서버 보안 그룹 사용
   security_group_id = module.sg.ai_server_security_group_id
+  save_private_key_locally = false
 }
 
 # Terraform 백엔드용 S3 버킷 모듈 (일회성 생성용)

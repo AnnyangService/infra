@@ -33,6 +33,47 @@ terraform apply
 terraform destroy
 ```
 
+## EC2 SSH 접속 방법
+
+### SSH 키 생성 및 저장
+
+**로컬 환경에서 SSH 키를 생성하고 저장하려면:**
+```bash
+# SSH 키를 로컬에 저장하면서 인프라 생성
+terraform apply -var="save_private_key_locally=true"
+```
+
+### SSH 접속
+
+**생성된 키로 EC2 인스턴스에 접속:**
+```bash
+# API 서버 접속
+ssh -i ./generated/annyang-key.pem ec2-user@<API_SERVER_PUBLIC_IP>
+
+# AI 서버 접속 (AI 모듈이 활성화된 경우)
+ssh -i ./generated/annyang-ai-key.pem ec2-user@<AI_SERVER_PUBLIC_IP>
+```
+
+### Terraform 출력에서 IP 주소 확인
+
+**EC2 인스턴스의 퍼블릭 IP 주소 확인:**
+```bash
+# API 서버 IP 확인
+terraform output ec2_public_ip
+
+# AI 서버 IP 확인 (AI 모듈이 활성화된 경우)
+terraform output ec2_ai_public_ip
+
+# 모든 출력 확인
+terraform output
+```
+
+### 주의사항
+
+- **GitHub Actions 실행 시**: `save_private_key_locally=false`가 기본값이므로 로컬 키 파일이 생성되지 않습니다.
+- **보안**: 생성된 SSH 키 파일(`generated/` 디렉토리)은 `.gitignore`에 포함되어 Git에 커밋되지 않습니다.
+- **권한**: SSH 키 파일은 자동으로 적절한 권한(600)으로 설정됩니다.
+
 ## CI/CD 배포 통합 방법
 
 ### 애플리케이션 프로젝트 준비
@@ -118,4 +159,5 @@ deploy:
 ## 참고사항
 - RDS 비밀번호는 AWS SSM Parameter Store에 저장되며, 초기 비밀번호는 배포 후 변경해야 합니다.
 - EC2 SSH 키는 `generated/` 디렉토리에 저장됩니다.
-- 애플리케이션이 SSM에서 환경 변수를 가져오기 위해서는 EC2 인스턴스에 적절한 IAM 권한이 필요합니다 (이미 구성됨). 
+- SSH 키 파일은 보안을 위해 Git에 커밋되지 않습니다.
+- 애플리케이션이 SSM에서 환경 변수를 가져오기 위해서는 EC2 인스턴스에 적절한 IAM 권한이 필요합니다 (이미 구성됨).
