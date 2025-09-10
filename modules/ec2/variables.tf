@@ -30,3 +30,9 @@ variable "security_group_id" {
   description = "EC2 인스턴스에 적용할 보안 그룹 ID"
   type        = string
 }
+
+variable "save_private_key_locally" {
+  description = "프라이빗 키를 로컬에 저장할지 여부 (GitHub Actions에서는 false)"
+  type        = bool
+  default     = false
+}
