@@ -1,4 +1,12 @@
 terraform {
+  # S3 백엔드 설정 (GitHub Actions용)
+  backend "s3" {
+    bucket  = "annyang-terraform-state"
+    key     = "terraform.tfstate"
+    region  = "ap-northeast-2"
+    encrypt = true
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
