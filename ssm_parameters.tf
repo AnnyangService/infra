@@ -119,13 +119,13 @@ resource "aws_ssm_parameter" "ai_server_codedeploy_group" {
 resource "aws_ssm_parameter" "cloudfront_distribution_id" {
   name  = "/${local.project_name}/frontend/cloudfront-distribution-id"
   type  = "String"
-  value = module.s3-cloudfront.cloudfront_distribution_id
+  value = module.frontend.cloudfront_distribution_id
   
   tags = {
     Name = "${local.project_name}-cloudfront-distribution-id"
   }
   
-  depends_on = [module.s3-cloudfront]
+  depends_on = [module.frontend]
 }
 
 # SSM 파라미터 출력값
