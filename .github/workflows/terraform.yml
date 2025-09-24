@@ -1,12 +1,6 @@
 name: 'Terraform Deploy'
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '**.tf'
-      - '.github/workflows/terraform.yml'
   pull_request:
     branches:
       - main
@@ -85,10 +79,6 @@ jobs:
             repo: context.repo.repo,
             body: output
           });
-
-    - name: Terraform Apply (Auto)
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: terraform apply -auto-approve
 
     - name: Terraform Apply (Manual)
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
