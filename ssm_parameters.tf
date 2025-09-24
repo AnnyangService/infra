@@ -115,6 +115,19 @@ resource "aws_ssm_parameter" "ai_server_codedeploy_group" {
   depends_on = [module.codedeploy]
 }
 
+# CloudFront 배포 ID SSM 파라미터 저장
+resource "aws_ssm_parameter" "cloudfront_distribution_id" {
+  name  = "/${local.project_name}/frontend/cloudfront-distribution-id"
+  type  = "String"
+  value = module.s3-cloudfront.cloudfront_distribution_id
+  
+  tags = {
+    Name = "${local.project_name}-cloudfront-distribution-id"
+  }
+  
+  depends_on = [module.s3-cloudfront]
+}
+
 # SSM 파라미터 출력값
 output "ssm_parameters" {
   description = "배포에 필요한 SSM 파라미터 경로"
@@ -125,5 +138,6 @@ output "ssm_parameters" {
     codedeploy_app = aws_ssm_parameter.codedeploy_app.name
     codedeploy_group = aws_ssm_parameter.api_server_codedeploy_group.name
     deployment_bucket = aws_ssm_parameter.deployment_bucket.name
+    cloudfront_distribution_id = aws_ssm_parameter.cloudfront_distribution_id.name
   }
 }
