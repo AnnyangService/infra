@@ -1,163 +1,179 @@
-# AWS 인프라 및 CodeDeploy 배포 설정
+# Hi-Meow AWS 인프라
 
-## 개요
-이 프로젝트는 Terraform을 사용하여 AWS 인프라(VPC, EC2, RDS)를 생성하고 CodeDeploy를 통한 애플리케이션 배포 환경을 구성합니다.
+Terraform을 사용하여 AWS 인프라를 관리하고 CodeDeploy를 통해 애플리케이션을 배포하는 프로젝트입니다.
 
-## 인프라 구성요소
-- **VPC**: 퍼블릭/프라이빗 서브넷, 인터넷 게이트웨이, 라우팅 테이블
-- **EC2**: 애플리케이션 서버 (CodeDeploy 에이전트 자동 설치)
-- **RDS**: MariaDB 데이터베이스
-- **보안 그룹**: EC2 및 RDS 접근 제어
-- **CodeDeploy**: 애플리케이션 배포 자동화
-- **S3**: 배포 패키지 저장소
+<br>
 
-## Terraform 실행 방법
+## 🏗️ 인프라 구성
 
-1. 초기화
+### 핵심 서비스
+| 서비스 | 용도 | 설명 |
+|--------|------|------|
+| **EC2** | API/AI 서버 | Spring Boot + AI 추론 서버 |
+| **RDS** | 데이터베이스 | MariaDB (프라이빗 서브넷) |
+| **ALB** | 로드밸런서 | HTTPS 지원, 도메인 연결 |
+| **S3** | 스토리지 | 배포 패키지, 이미지, 프론트엔드 |
+| **CloudFront** | CDN | 프론트엔드 배포 |
+| **CodeDeploy** | 배포 | 자동화된 애플리케이션 배포 |
+
+### 네트워크 구성
+- **VPC**: 퍼블릭/프라이빗 서브넷 (다중 AZ)
+- **도메인**: hi-meow.kro.kr (ACM SSL 인증서)
+- **보안**: IAM 역할, 보안 그룹, SSM Parameter Store
+
+<br>
+
+## 🚀 빠른 시작
+
+### 1. 인프라 생성
 ```bash
+# AWS 로그인
+aws sso login
+
+# Terraform 실행
 terraform init
-```
-
-2. 계획 확인
-```bash
 terraform plan
-```
-
-3. 인프라 생성
-```bash
 terraform apply
 ```
 
-4. 인프라 삭제
+### 2. 도메인 설정
 ```bash
-terraform destroy
+# ALB DNS 주소 확인
+terraform output alb_dns_name
+
+# 도메인 CNAME 설정 (예: 내도메인.한국)
+# api.hi-meow.kro.kr → ALB DNS 주소
+# hi-meow.kro.kr → CloudFront 도메인
 ```
 
-## EC2 SSH 접속 방법
-
-### SSH 키 생성 및 저장
-
-**로컬 환경에서 SSH 키를 생성하고 저장하려면:**
+### 3. 접속 확인
 ```bash
-# SSH 키를 로컬에 저장하면서 인프라 생성
-terraform apply -var="save_private_key_locally=true"
+# 웹사이트 접속
+open https://hi-meow.kro.kr
+
+# API 서버 상태 확인
+curl https://api.hi-meow.kro.kr/health
 ```
 
-### SSH 접속
+<br>
 
-**생성된 키로 EC2 인스턴스에 접속:**
+## 🔌 접속 방법
+
+### SSH 서버 접속
+
+**권장 방법 (SSM 사용):**
 ```bash
 # API 서버 접속
-ssh -i ./generated/annyang-key.pem ec2-user@<API_SERVER_PUBLIC_IP>
+aws ssm get-parameter --name '/annyang/ec2/ssh/private-key' --with-decryption --query 'Parameter.Value' --output text > temp-key.pem
+chmod 600 temp-key.pem
+ssh -i temp-key.pem ec2-user@$(terraform output -raw ec2_public_ip)
+rm temp-key.pem
 
-# AI 서버 접속 (AI 모듈이 활성화된 경우)
-ssh -i ./generated/annyang-ai-key.pem ec2-user@<AI_SERVER_PUBLIC_IP>
+# AI 서버 접속
+aws ssm get-parameter --name '/annyang/ec2-ai/ssh/private-key' --with-decryption --query 'Parameter.Value' --output text > temp-key.pem
+chmod 600 temp-key.pem
+ssh -i temp-key.pem ec2-user@$(terraform output -raw ai_server_public_ip)
+rm temp-key.pem
 ```
 
-### Terraform 출력에서 IP 주소 확인
-
-**EC2 인스턴스의 퍼블릭 IP 주소 확인:**
+**간편한 방법 (Session Manager):**
 ```bash
-# API 서버 IP 확인
-terraform output ec2_public_ip
+# SSH 키 없이 접속
+aws ssm start-session --target $(terraform output -raw ec2_instance_id)
+aws ssm start-session --target $(terraform output -raw ai_server_instance_id)
+```
 
-# AI 서버 IP 확인 (AI 모듈이 활성화된 경우)
-terraform output ec2_ai_public_ip
+### 데이터베이스 접속
+```bash
+# API 서버를 통한 터널링 후 접속
+mysql -h $(terraform output -raw rds_endpoint) -P 3306 -u admin -p
+```
 
-# 모든 출력 확인
+### 주요 접속 정보
+```bash
+# 모든 접속 정보 확인
 terraform output
+
+# 개별 정보 확인
+terraform output ec2_public_ip           # API 서버 IP
+terraform output ai_server_public_ip     # AI 서버 IP
+terraform output alb_dns_name            # 로드밸런서 주소
+terraform output rds_endpoint            # 데이터베이스 엔드포인트
 ```
 
-### 주의사항
+<br>
 
-- **GitHub Actions 실행 시**: `save_private_key_locally=false`가 기본값이므로 로컬 키 파일이 생성되지 않습니다.
-- **보안**: 생성된 SSH 키 파일(`generated/` 디렉토리)은 `.gitignore`에 포함되어 Git에 커밋되지 않습니다.
-- **권한**: SSH 키 파일은 자동으로 적절한 권한(600)으로 설정됩니다.
 
-## CI/CD 배포 통합 방법
+## 🔧 SSM Parameter Store
 
-### 애플리케이션 프로젝트 준비
+자주 사용하는 설정값들이 SSM Parameter Store에 저장되어 있습니다:
 
-1. `appspec.yml`을 프로젝트 루트에 배치
-   - CodeDeploy가 배포 단계를 관리하는 데 필요한 파일입니다.
-
-2. 배포 스크립트 준비
-   - `scripts/before_install.sh`: 배포 전 준비
-   - `scripts/after_install.sh`: 배포 후 설정 (SSM에서 환경 변수 불러오기)
-   - `scripts/application_start.sh`: 애플리케이션 시작
-   - `scripts/application_stop.sh`: 애플리케이션 중지
-
-### CI/CD 파이프라인 설정 (GitHub Actions, Jenkins, GitLab CI 등)
-
-CI/CD 파이프라인에 다음 단계를 추가합니다:
-
-1. 빌드 단계
-```yaml
-# 예: GitHub Actions 워크플로우
-build:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v3
-    # 빌드 단계...
-    
-    # 배포 패키지 생성
-    - name: Create deployment package
-      run: |
-        zip -r application.zip appspec.yml scripts/ dist/ # 또는 빌드된 파일이 있는 디렉토리
+### 데이터베이스 연결
+```bash
+aws ssm get-parameter --name "/annyang/db/url" --query "Parameter.Value" --output text
+aws ssm get-parameter --name "/annyang/db/password" --with-decryption --query "Parameter.Value" --output text
 ```
 
-2. S3 업로드 단계
-```yaml
-upload-to-s3:
-  runs-on: ubuntu-latest
-  needs: build
-  steps:
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-northeast-2
-        
-    - name: Upload to S3
-      run: |
-        aws s3 cp application.zip s3://${BUCKET_NAME}/releases/application-${{ github.sha }}.zip
-      env:
-        BUCKET_NAME: $(aws ssm get-parameters --names "/annyang/deploy/bucket" --query "Parameters[0].Value" --output text)
+### 배포 설정
+```bash
+aws ssm get-parameter --name "/annyang/server-deploy/bucket" --query "Parameter.Value" --output text
+aws ssm get-parameter --name "/annyang/ai-server/url" --query "Parameter.Value" --output text
 ```
 
-3. CodeDeploy 배포 시작
-```yaml
-deploy:
-  runs-on: ubuntu-latest
-  needs: upload-to-s3
-  steps:
-    - name: Deploy with CodeDeploy
-      run: |
-        APP_NAME=$(aws ssm get-parameters --names "/annyang/deploy/app_name" --query "Parameters[0].Value" --output text)
-        DEPLOY_GROUP=$(aws ssm get-parameters --names "/annyang/deploy/group_name" --query "Parameters[0].Value" --output text)
-        BUCKET_NAME=$(aws ssm get-parameters --names "/annyang/deploy/bucket" --query "Parameters[0].Value" --output text)
-        
-        aws deploy create-deployment \
-          --application-name $APP_NAME \
-          --deployment-group-name $DEPLOY_GROUP \
-          --s3-location bucket=$BUCKET_NAME,key=releases/application-${{ github.sha }}.zip,bundleType=zip \
-          --region ap-northeast-2
+### SSH 키 (보안)
+```bash
+aws ssm get-parameter --name "/annyang/ec2/ssh/private-key" --with-decryption --query "Parameter.Value" --output text
 ```
 
-## SSM 파라미터 스토어 사용
+<br>
 
-배포된 EC2 인스턴스는 배포 스크립트에서 다음 SSM 파라미터들을 사용합니다:
+## 💡 주요 특징
 
-- `/${PROJECT_NAME}/db/url`: 데이터베이스 JDBC URL
-- `/${PROJECT_NAME}/db/username`: 데이터베이스 사용자 이름
-- `/${PROJECT_NAME}/db/password`: 데이터베이스 비밀번호 (암호화됨)
-- `/${PROJECT_NAME}/deploy/api-server/app_name`: CodeDeploy 애플리케이션 이름
-- `/${PROJECT_NAME}/deploy/api-server/group_name`: CodeDeploy 배포 그룹 이름
-- `/${PROJECT_NAME}/deploy/api-server/bucket`: 배포 S3 버킷 이름
+- **💰 비용 최적화**: 필요시에만 인프라 생성/삭제 가능
+- **🔐 보안 강화**: SSH 키 SSM 저장, HTTPS 강제, IAM 역할 기반 접근
+- **🚀 자동 배포**: CodeDeploy + GitHub Actions 통합
+- **📊 모니터링**: CloudWatch 로그, ALB Health Check
+- **🔄 확장성**: 독립적인 API/AI 서버, 다중 AZ 구성
 
-## 참고사항
-- RDS 비밀번호는 AWS SSM Parameter Store에 저장되며, 초기 비밀번호는 배포 후 변경해야 합니다.
-- EC2 SSH 키는 `generated/` 디렉토리에 저장됩니다.
-- SSH 키 파일은 보안을 위해 Git에 커밋되지 않습니다.
-- 애플리케이션이 SSM에서 환경 변수를 가져오기 위해서는 EC2 인스턴스에 적절한 IAM 권한이 필요합니다 (이미 구성됨).
+
+<br>
+
+## 🆘 문제 해결
+
+### 자주 발생하는 문제들
+
+**인프라 생성 실패**
+```bash
+# Terraform 상태 초기화
+terraform destroy
+rm -rf .terraform terraform.tfstate*
+terraform init
+```
+
+**SSH 접속 실패**
+```bash
+# Session Manager로 대체 접속
+aws ssm start-session --target INSTANCE_ID
+```
+
+**배포 실패**
+```bash
+# CodeDeploy 로그 확인
+aws logs tail /aws/codedeploy-agent/codedeploy-agent --follow
+```
+
+
+<br>
+
+## 🗂️ 참고 문서
+
+### 개발 가이드
+- 📝 [Terraform 코딩 컨벤션](docs/TERRAFORM_CONVENTIONS.md)
+- 🔀 [커밋 규칙](docs/COMMIT_RULES.md)
+
+### 프로젝트 문서  
+- 📖 [이슈 추적 히스토리](docs/ISSUES.md)
+
+### 관련 링크
+- 🌐 **웹사이트**: https://hi-meow.kro.kr
+- 🔧 **AWS 콘솔**: [CodeDeploy](https://console.aws.amazon.com/codedeploy/) | [EC2](https://console.aws.amazon.com/ec2/) | [RDS](https://console.aws.amazon.com/rds/)
