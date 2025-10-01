@@ -88,27 +88,39 @@ jobs:
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
       uses: actions/github-script@v7
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.PAT_TOKEN }}
         script: |
-          github.rest.actions.createWorkflowDispatch({
-            owner: 'AnnyangService',
-            repo: 'backend',
-            workflow_id: 'deploy.yml',
-            ref: 'main'
-          });
+          try {
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'AnnyangService',
+              repo: 'backend',
+              workflow_id: 'deploy.yml',
+              ref: 'main'
+            });
+            console.log('✅ API Server deployment triggered successfully');
+          } catch (error) {
+            console.error('❌ Failed to trigger API Server deployment:', error.message);
+            core.setFailed(`API Server deployment trigger failed: ${error.message}`);
+          }
 
     - name: Trigger AI Server Deployment
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
       uses: actions/github-script@v7
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.PAT_TOKEN }}
         script: |
-          github.rest.actions.createWorkflowDispatch({
-            owner: 'AnnyangService',
-            repo: 'backend_eye',
-            workflow_id: 'deploy.yml',
-            ref: 'main'
-          });
+          try {
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'AnnyangService',
+              repo: 'backend_eye',
+              workflow_id: 'deploy.yml',
+              ref: 'main'
+            });
+            console.log('✅ AI Server deployment triggered successfully');
+          } catch (error) {
+            console.error('❌ Failed to trigger AI Server deployment:', error.message);
+            core.setFailed(`AI Server deployment trigger failed: ${error.message}`);
+          }
 
     - name: Terraform Destroy (Manual)
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
