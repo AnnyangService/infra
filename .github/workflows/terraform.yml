@@ -113,7 +113,7 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: 'AnnyangService',
               repo: 'backend_eye',
-              workflow_id: 'deploy.yml',
+              workflow_id: 'build-and-deploy.yml',
               ref: 'main'
             });
             console.log('✅ AI Server deployment triggered successfully');
