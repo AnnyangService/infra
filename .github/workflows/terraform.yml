@@ -18,6 +18,11 @@ on:
           - apply
           - destroy
 
+# 동시성 제어 - Terraform 상태 파일 충돌 방지
+concurrency:
+  group: terraform-deploy
+  cancel-in-progress: false  # 진행 중인 작업은 취소하지 않음
+
 env:
   AWS_REGION: 'ap-northeast-2'
   TF_VERSION: '1.6.0'
