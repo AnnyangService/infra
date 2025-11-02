@@ -64,6 +64,9 @@ resource "aws_db_instance" "main" {
   
   vpc_security_group_ids = [var.rds_security_group_id]
   db_subnet_group_name   = aws_db_subnet_group.main.name
+
+  # 암호화 설정 추가 (무료, 성능 영향 미미)
+  storage_encrypted = true
   
   # 추가 설정
   multi_az             = var.multi_az
